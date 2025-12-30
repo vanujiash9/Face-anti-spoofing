@@ -25,7 +25,6 @@ saved_models/
 *.pickle
 
 # Results & Logs
-results/
 *.csv
 *.xlsx
 *.log
