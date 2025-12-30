@@ -39,25 +39,48 @@ Phát hiện tấn công giả mạo khuôn mặt (Face Anti-Spoofing) sử dụ
 - `scripts/` : Script tiện ích, xử lý dữ liệu
 
 ## Hướng dẫn sử dụng
-1. Cài đặt môi trường:
-  ```bash
-  pip install -r requirements.txt
-  ```
-2. Chuẩn bị dữ liệu theo cấu trúc `data/`
-3. Train từng mô hình:
-  ```bash
-  CUDA_VISIBLE_DEVICES=0 PYTHONPATH=. python3 src/training/train_convnext.py
-  CUDA_VISIBLE_DEVICES=1 PYTHONPATH=. python3 src/training/train_efficientnet.py
-  CUDA_VISIBLE_DEVICES=2 PYTHONPATH=. python3 src/training/train_vit.py
-  ```
-4. Đánh giá và trực quan hóa:
-  ```bash
-  python3 evaluate_all.py
-  ```
-5. Triển khai dashboard:
-  ```bash
-  streamlit run app.py
-  ```
+### 1. Cài đặt môi trường:
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Chuẩn bị dữ liệu
+- **Không push dữ liệu, model, checkpoint lớn lên GitHub!**
+- Nén dữ liệu thành file .zip (ví dụ: data.zip) và upload riêng nếu cần chia sẻ.
+- Khi clone về, giải nén bằng:
+```bash
+unzip data.zip -d FAS/
+```
+
+### 3. Train từng mô hình:
+```bash
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=. python3 src/training/train_convnext.py
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=. python3 src/training/train_efficientnet.py
+CUDA_VISIBLE_DEVICES=2 PYTHONPATH=. python3 src/training/train_vit.py
+```
+
+### 4. Đánh giá và trực quan hóa:
+```bash
+python3 evaluate_all.py
+```
+
+### 5. Triển khai dashboard:
+```bash
+streamlit run app.py
+```
+
+### 6. Kết quả mẫu (ví dụ)
+| Mô hình        | HTER (%) | Accuracy (%) | APCER | BPCER |
+|---------------|----------|--------------|-------|-------|
+| ConvNeXt      | 12.8     | 99.3         | 0.12  | 0.14  |
+| EfficientNet  | 13.0     | 99.2         | 0.13  | 0.13  |
+| ViT           | 14.5     | 98.9         | 0.15  | 0.16  |
+| Ensemble      | 11.2     | 99.5         | 0.10  | 0.12  |
+
+![](results/final_report/ConvNeXt_learning_history.png)
+![](results/final_report/ConvNeXt_cm.png)
+
+> **Dự án hỗ trợ phân tích lỗi, Grad-CAM, trực quan hóa prediction gallery, dashboard web, và báo cáo khoa học chuyên nghiệp.**
 
 ## Đóng góp
 Mọi đóng góp, báo lỗi hoặc ý tưởng mới đều được hoan nghênh qua GitHub Issues hoặc Pull Request.
