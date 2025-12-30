@@ -1,63 +1,70 @@
-
-# Face Liveness Detection (PAD)
-
-**Tác giả:** Bùi Thị Thanh Vân
+# Face Anti-Spoofing Project
 
 ## Mục tiêu
-Hệ thống phát hiện tấn công giả mạo khuôn mặt (Face Liveness Detection) bằng deep learning, phân biệt live/spoof từ ảnh hoặc video.
+Phát hiện tấn công giả mạo khuôn mặt (Face Anti-Spoofing) sử dụng các mô hình hiện đại: ConvNeXt, EfficientNet, Vision Transformer (ViT).
 
-## Tính năng chính
-- Huấn luyện và đánh giá các backbone: EfficientNet, ConvNeXt, ViT
-- Pipeline end-to-end: tiền xử lý, huấn luyện, inference, ensemble, báo cáo
-- Demo trực quan với Streamlit (`app.py`)
-- Hỗ trợ upload/checkpoint, lưu kết quả, vẽ biểu đồ
+## Kiến trúc mô hình
+- **Backbone:** ConvNeXt, EfficientNetV2, ViT (Vision Transformer)
+- **Head:** MLP nhị phân 2 lớp Linear, đầu ra 1 neuron (Sigmoid)
+- **ConvNeXt:** Stochastic Depth, Progressive Unfreezing
+- **EfficientNet:** Mixup, Dropout 0.6, Regularization mạnh
+- **ViT:** LoRA Rank 16, Weight Decay 0.2
 
-## Cài đặt nhanh
-```bash
-# Tạo môi trường ảo (nên dùng)
-python -m venv .venv
-source .venv/bin/activate
+## Quy trình huấn luyện
+- Hỗ trợ đa GPU, train song song 3 mô hình
+- Giám sát RAM, VRAM, latency mỗi epoch
+- Lưu checkpoint tốt nhất (HTER thấp nhất) và checkpoint cuối
+- Early Stopping dựa trên HTER
+- Label Smoothing (0.1–0.2)
+- Augmentation mạnh (Mixup, CutMix, Random Erasing...)
 
-# Cài dependencies
-pip install -r requirements.txt
+## Đánh giá & Trực quan hóa
+- Đánh giá đa ngưỡng (0.0–1.0, bước 0.1)
+- Tính TPR, FPR (APCER), BPCER, HTER, Accuracy, Precision, F1-Score
+- Phân tích theo nhóm tấn công: Deepfake, Mask, Print, Replay
+- Biểu đồ phân phối xác suất, confusion matrix, prediction gallery
+- Phân tích lỗi: Truy vết mẫu sai, phân loại lỗi, Grad-CAM
 
-# Chạy demo giao diện
-streamlit run app.py
-```
+## Triển khai & Báo cáo
+- Dashboard Streamlit: batch, URL, webcam
+- Hình ảnh báo cáo: radar chart, biểu đồ so sánh (300 DPI)
+- Tài liệu hướng dẫn chi tiết, không dùng icon
 
 ## Cấu trúc thư mục
-- `app.py` : Giao diện demo
-- `ensemble_score.py`, `evaluate_all.py` : Script ensemble, đánh giá
-- `requirements.txt` : Thư viện cần thiết
-- `config/` : File YAML cấu hình backbone
-- `checkpoints/` : Lưu weights từng model (best.pt, last.pt)
-- `saved_models/` : Model lưu sẵn (safetensors, config)
-- `src/` : Mã nguồn chính
-  - `training/` : Script huấn luyện
-  - `inference/` : Hàm inference, phân tích
-  - `models/` : Định nghĩa model
-  - `data/` : Loader, tiền xử lý
-  - `evaluation/` : Hàm tính metric, vẽ biểu đồ
-- `scripts/` : Script tiện ích, tiền xử lý dữ liệu
+- `src/` : Code chính (training, evaluation, models, utils)
+- `config/` : File cấu hình yaml cho từng mô hình
+- `data/` : Dữ liệu train/test
+- `results/` : Kết quả, log, hình ảnh trực quan hóa
+- `checkpoints/`, `saved_models/` : Trọng số mô hình
+- `scripts/` : Script tiện ích, xử lý dữ liệu
 
 ## Hướng dẫn sử dụng
-### Huấn luyện
-```bash
-python src/training/train_efficientnet.py --config config/efficientnet.yaml
-```
-- Thay đổi backbone hoặc config YAML tùy ý.
+1. Cài đặt môi trường:
+  ```bash
+  pip install -r requirements.txt
+  ```
+2. Chuẩn bị dữ liệu theo cấu trúc `data/`
+3. Train từng mô hình:
+  ```bash
+  CUDA_VISIBLE_DEVICES=0 PYTHONPATH=. python3 src/training/train_convnext.py
+  CUDA_VISIBLE_DEVICES=1 PYTHONPATH=. python3 src/training/train_efficientnet.py
+  CUDA_VISIBLE_DEVICES=2 PYTHONPATH=. python3 src/training/train_vit.py
+  ```
+4. Đánh giá và trực quan hóa:
+  ```bash
+  python3 evaluate_all.py
+  ```
+5. Triển khai dashboard:
+  ```bash
+  streamlit run app.py
+  ```
 
-### Đánh giá & Ensemble
-```bash
-python evaluate_all.py
-python ensemble_score.py
-```
+## Đóng góp
+Mọi đóng góp, báo lỗi hoặc ý tưởng mới đều được hoan nghênh qua GitHub Issues hoặc Pull Request.
 
-### Inference/Demo
-- Chạy `streamlit run app.py` để demo trực quan (ảnh, webcam, video)
-- Hoặc dùng `src/inference/infer_model.py` để gọi từ script
-
-## Lưu ý
+## Tác giả
+- Thanh Van (thanh.van19062004@gmail.com)
+- Github: https://github.com/vanujiash9/Face-anti-spoof
 - File weights lớn (>100MB) không upload lên GitHub, chỉ lưu local hoặc upload lên Hugging Face/rclone.
 - Đảm bảo đường dẫn file trong config đúng với hệ thống của bạn.
 

@@ -1,10 +1,12 @@
 import os
 import torch
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 from PIL import Image
 from torchvision import transforms
-import random
+from tqdm import tqdm
 import sys
 
 # Setup Path
@@ -16,105 +18,135 @@ from src.data.data_loader import build_loaders
 
 # ================= CẤU HÌNH =================
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-OUTPUT_DIR = "results/qualitative_results"
+OUTPUT_DIR = "results/attack_analysis_report"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Đường dẫn file weights của bạn
+DATA_DIR = "data/data_split/test/1_spoof" # Chỉ soi lỗi trên tập Spoof
+
 MODELS_SETUP = {
     "ConvNeXt": {"class": ConvNextBinary, "path": "checkpoints/convnext/best.pt", "size": 224},
     "EfficientNet": {"class": EfficientNetBinary, "path": "checkpoints/efficientnet/best.pt", "size": 260},
     "ViT": {"class": ViTLoRA, "path": "checkpoints/vit/best.pt", "size": 224}
 }
 
-# ================= HÀM HỖ TRỢ =================
+SPOOF_CATEGORIES = {
+    'Deepfake': ['Deepfakes', 'Face2Face', 'FaceSwap', 'NeuralTextures'],
+    'Mask': ['silicon', 'mask', 'latex', '3D_Mask'],
+    'Print': ['Poster', 'Photo', 'A4'],
+    'Replay': ['Phone', 'PC', 'Pad']
+}
 
-def load_model_instance(name, cfg):
-    model = cfg['class']().to(DEVICE)
-    if os.path.exists(cfg['path']):
-        state = torch.load(cfg['path'], map_location=DEVICE, weights_only=True)
-        # Sửa lỗi prefix module.
-        model.load_state_dict({k.replace('module.', ''): v for k, v in state.items()})
-        model.eval()
-        return model
-    return None
+def get_attack_type(fname):
+    for cat, keywords in SPOOF_CATEGORIES.items():
+        if any(kw.lower() in fname.lower() for kw in keywords): return cat
+    return "Other"
 
-def get_prediction(model, img_pil, size):
-    tf = transforms.Compose([
-        transforms.Resize((size, size)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-    inp = tf(img_pil).unsqueeze(0).to(DEVICE)
-    with torch.no_grad():
-        out = model(inp)
-        prob = torch.sigmoid(out).item()
-    label = 1 if prob >= 0.5 else 0
-    return label, prob
+# ================= HÀM XỬ LÝ =================
 
 def main():
-    print(">>> Đang chuẩn bị 10 mẫu ảnh tiêu biểu (5 Live, 5 Spoof)...")
+    print(">>> Đang bắt đầu phân tích lỗi đa mô hình...")
     
-    # 1. Chọn mẫu
-    test_live_dir = "data/data_split/test/0_live"
-    test_spoof_dir = "data/data_split/test/1_spoof"
-    
-    live_files = [os.path.join(test_live_dir, f) for f in os.listdir(test_live_dir) if f.lower().endswith(('.png', '.jpg'))]
-    spoof_files = [os.path.join(test_spoof_dir, f) for f in os.listdir(test_spoof_dir) if f.lower().endswith(('.png', '.jpg'))]
-    
-    selected_samples = random.sample(live_files, 5) + random.sample(spoof_files, 5)
-    
-    # 2. Load cả 3 model
-    models = {}
+    # 1. Thu thập dự đoán của cả 3 model
+    all_files = [f for f in os.listdir(DATA_DIR) if f.lower().endswith(('.jpg', '.png'))]
+    results_record = [] # Lưu: {'filename', 'type', 'ConvNeXt_res', 'EffNet_res', 'ViT_res'}
+
+    # Khởi tạo model và dict để lưu dự đoán
+    predictions_map = {f: {} for f in all_files}
+
     for name, cfg in MODELS_SETUP.items():
-        m = load_model_instance(name, cfg)
-        if m: models[name] = m
+        print(f"-> Đang chạy Inference cho {name}...")
+        model = cfg['class']().to(DEVICE)
+        state = torch.load(cfg['path'], map_location=DEVICE, weights_only=True)
+        model.load_state_dict({k.replace('module.', ''): v for k, v in state.items()})
+        model.eval()
 
-    # 3. Chạy Inference và Vẽ hình
-    # Tạo lưới 2 hàng x 5 cột
-    fig, axes = plt.subplots(2, 5, figsize=(25, 12))
-    plt.subplots_adjust(wspace=0.3, hspace=0.4)
-    
-    for idx, img_path in enumerate(selected_samples):
-        ax = axes[idx // 5, idx % 5]
-        img_pil = Image.open(img_path).convert('RGB')
-        ax.imshow(img_pil)
-        
-        gt_label = 0 if "0_live" in img_path else 1
-        gt_text = "LIVE" if gt_label == 0 else "SPOOF"
-        
-        # Tiêu đề ảnh (Ground Truth)
-        ax.set_xlabel(f"GT: {gt_text}", fontsize=14, fontweight='bold', labelpad=10)
-        ax.set_xticks([]); ax.set_yticks([])
-        
-        # Dự đoán của 3 model
-        results_text = ""
-        for name, model in models.items():
-            pred_label, prob = get_prediction(model, img_pil, MODELS_SETUP[name]['size'])
-            
-            # Màu sắc: Xanh nếu đúng, Đỏ nếu sai
-            color = "green" if pred_label == gt_label else "red"
-            pred_text = "SPOOF" if pred_label == 1 else "LIVE"
-            
-            # Hiển thị text dự đoán bên dưới mỗi ảnh
-            ax.text(0.5, -0.15 - (list(models.keys()).index(name) * 0.1), 
-                    f"{name}: {pred_text} ({prob:.2%})", 
-                    transform=ax.transAxes, ha="center", fontsize=11, 
-                    color=color, fontweight='bold')
-        
-        # Vẽ khung viền cho ảnh
-        rect_color = "black"
-        for spine in ax.spines.values():
-            spine.set_edgecolor(rect_color)
-            spine.set_linewidth(2)
+        tf = transforms.Compose([
+            transforms.Resize((cfg['size'], cfg['size'])),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
 
-    plt.suptitle("Qualitative Performance Comparison: ConvNeXt vs EfficientNet vs ViT\n(Correct: Green | Incorrect: Red)", 
-                 fontsize=22, fontweight='bold', y=0.98)
+        with torch.no_grad():
+            for f in tqdm(all_files, leave=False):
+                img_path = os.path.join(DATA_DIR, f)
+                img = Image.open(img_path).convert('RGB')
+                inp = tf(img).unsqueeze(0).to(DEVICE)
+                
+                out = torch.sigmoid(model(inp)).item()
+                # 1 = Đúng (Bắt được spoof), 0 = Sai (Bị lừa là Real)
+                predictions_map[f][name] = 1 if out >= 0.5 else 0
+                predictions_map[f][f"{name}_score"] = out
+
+    # 2. Chuyển đổi sang DataFrame để phân tích
+    data_list = []
+    for f, preds in predictions_map.items():
+        row = {'filename': f, 'Attack_Type': get_attack_type(f)}
+        row.update(preds)
+        data_list.append(row)
     
-    save_path = os.path.join(OUTPUT_DIR, "Fig8_Qualitative_Comparison_10_samples.png")
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    df = pd.DataFrame(data_list)
+    df.to_csv(f"{OUTPUT_DIR}/detailed_predictions.csv", index=False)
+
+    # 3. TRỰC QUAN HÓA: Độ chính xác theo loại Spoof
+    print(">>> Đang vẽ biểu đồ hiệu năng theo loại tấn công...")
+    plot_data = []
+    for m in MODELS_SETUP.keys():
+        for cat in SPOOF_CATEGORIES.keys():
+            sub_df = df[df['Attack_Type'] == cat]
+            if len(sub_df) > 0:
+                acc = sub_df[m].mean() * 100
+                plot_data.append({"Model": m, "Category": cat, "Accuracy (%)": acc})
+    
+    plt.figure(figsize=(12, 6))
+    sns.set_style("whitegrid")
+    ax = sns.barplot(data=pd.DataFrame(plot_data), x="Category", y="Accuracy (%)", hue="Model", palette="muted")
+    plt.ylim(85, 101)
+    plt.title("Model Robustness by Spoof Attack Category", fontsize=15, fontweight='bold')
+    for p in ax.patches: ax.annotate(f'{p.get_height():.1f}%', (p.get_x() + p.get_width()/2., p.get_height()), ha='center', va='baseline', fontsize=9, xytext=(0, 5), textcoords='offset points')
+    plt.savefig(f"{OUTPUT_DIR}/Fig_Attack_Accuracy.png", dpi=300)
     plt.close()
+
+    # 4. TÌM KIẾM CA "SIÊU KHÓ" (Cả 3 mô hình cùng đoán SAI)
+    # Lỗi sai ở đây là predict = 0 (vì đây là tập Spoof)
+    consensus_fails = df[(df['ConvNeXt'] == 0) & (df['EfficientNet'] == 0) & (df['ViT'] == 0)]
     
-    print(f"\n THÀNH CÔNG! Đã xuất ảnh so sánh đối soát tại: {save_path}")
+    print(f"!!! Tìm thấy {len(consensus_fails)} mẫu cả 3 mô hình đều dự đoán sai (Consensus Failure).")
+    
+    if not consensus_fails.empty:
+        # Vẽ gallery 8 mẫu sai nặng nhất
+        num_show = min(len(consensus_fails), 8)
+        fig, axes = plt.subplots(2, 4, figsize=(20, 10))
+        plt.suptitle("Consensus Failures: Samples misclassified by ALL 3 models", fontsize=20, color='red', fontweight='bold')
+        
+        for i in range(num_show):
+            ax = axes[i//4, i%4]
+            f = consensus_fails.iloc[i]['filename']
+            img = Image.open(os.path.join(DATA_DIR, f))
+            ax.imshow(img)
+            # Lấy score trung bình để hiển thị độ "ngu" của AI
+            avg_score = (consensus_fails.iloc[i]['ConvNeXt_score'] + consensus_fails.iloc[i]['EfficientNet_score'] + consensus_fails.iloc[i]['ViT_score']) / 3
+            ax.set_title(f"Type: {consensus_fails.iloc[i]['Attack_Type']}\nAvg Score: {avg_score:.4f}", color='darkred', fontsize=12)
+            ax.axis('off')
+        
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.savefig(f"{OUTPUT_DIR}/Fig_Consensus_Failures.png", dpi=300)
+        plt.close()
+
+    # 5. LIÊT KÊ CÁC HÌNH SAI RIÊNG BIỆT (Vẽ riêng cho từng model)
+    for m in MODELS_SETUP.keys():
+        m_fails = df[df[m] == 0].sort_values(by=f"{m}_score").head(4) # 4 mẫu tệ nhất của từng con
+        if not m_fails.empty:
+            fig, axes = plt.subplots(1, 4, figsize=(20, 5))
+            plt.suptitle(f"Top failure cases for {m}", fontsize=16, fontweight='bold')
+            for i in range(len(m_fails)):
+                f = m_fails.iloc[i]['filename']
+                axes[i].imshow(Image.open(os.path.join(DATA_DIR, f)))
+                axes[i].set_title(f"Type: {m_fails.iloc[i]['Attack_Type']}\nScore: {m_fails.iloc[i][f'{m}_score']:.4f}")
+                axes[i].axis('off')
+            plt.savefig(f"{OUTPUT_DIR}/Fig_Failures_{m}.png", dpi=300)
+            plt.close()
+
+    print(f"\n HOÀN TẤT! Kết quả đã lưu tại: {OUTPUT_DIR}")
 
 if __name__ == "__main__":
     main()
