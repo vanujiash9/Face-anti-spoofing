@@ -1,0 +1,16 @@
+model_name: "efficientnet"
+dataset:
+  img_dir: "data/dataset_final"
+  input_size: 260
+  batch_size: 64
+  num_workers: 16
+train:
+  epochs: 40
+  learning_rate: 0.00005
+  weight_decay: 0.15
+  label_smoothing: 0.2
+  warmup_epochs: 5
+  patience: 12
+  device: "cuda"
+  checkpoint_dir: "checkpoints/efficientnet"
+  results_dir: "results/efficientnet"

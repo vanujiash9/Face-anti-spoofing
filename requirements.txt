@@ -1,0 +1,17 @@
+numpy<2.0.0
+pandas
+scikit-learn
+pyyaml
+psutil
+pillow
+tqdm
+requests
+imagehash
+timm
+mediapipe==0.10.9
+opencv-python-headless
+streamlit
+seaborn
+matplotlib
+ptflops
+facenet-pytorch
