@@ -1,361 +1,374 @@
-# Face Anti-Spoofing Project
+# Face Anti-Spoofing — So Sánh Kiến Trúc Học Sâu Hiện Đại
 
-## Mục tiêu
-Phát hiện tấn công giả mạo khuôn mặt (Face Anti-Spoofing) sử dụng các mô hình hiện đại: ConvNeXt, EfficientNet, Vision Transformer (ViT).
-
-## Kiến trúc mô hình
-- **Backbone:** ConvNeXt, EfficientNetV2, ViT (Vision Transformer)
-- **Head:** MLP nhị phân 2 lớp Linear, đầu ra 1 neuron (Sigmoid)
-- **ConvNeXt:** Stochastic Depth, Progressive Unfreezing
-- **EfficientNet:** Mixup, Dropout 0.6, Regularization mạnh
-- **ViT:** LoRA Rank 16, Weight Decay 0.2
-
-## Quy trình huấn luyện
-- Hỗ trợ đa GPU, train song song 3 mô hình
-- Giám sát RAM, VRAM, latency mỗi epoch
-- Lưu checkpoint tốt nhất (HTER thấp nhất) và checkpoint cuối
-- Early Stopping dựa trên HTER
-- Label Smoothing (0.1–0.2)
-- Augmentation mạnh (Mixup, CutMix, Random Erasing...)
-
-## Đánh giá & Trực quan hóa
-- Đánh giá đa ngưỡng (0.0–1.0, bước 0.1)
-- Tính TPR, FPR (APCER), BPCER, HTER, Accuracy, Precision, F1-Score
-- Phân tích theo nhóm tấn công: Deepfake, Mask, Print, Replay
-- Biểu đồ phân phối xác suất, confusion matrix, prediction gallery
-- Phân tích lỗi: Truy vết mẫu sai, phân loại lỗi, Grad-CAM
-
-## Triển khai & Báo cáo
-- Dashboard Streamlit: batch, URL, webcam
-- Hình ảnh báo cáo: radar chart, biểu đồ so sánh (300 DPI)
-- Tài liệu hướng dẫn chi tiết, không dùng icon
-
-## Cấu trúc thư mục
-- `src/` : Code chính (training, evaluation, models, utils)
-- `config/` : File cấu hình yaml cho từng mô hình
-- `data/` : Dữ liệu train/test
-- `results/` : Kết quả, log, hình ảnh trực quan hóa
-- `checkpoints/`, `saved_models/` : Trọng số mô hình
-- `scripts/` : Script tiện ích, xử lý dữ liệu
-
-## Hướng dẫn sử dụng
-### 1. Cài đặt môi trường:
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Chuẩn bị dữ liệu
-- **Không push dữ liệu, model, checkpoint lớn lên GitHub!**
-- Nén dữ liệu thành file .zip (ví dụ: data.zip) và upload riêng nếu cần chia sẻ.
-- Khi clone về, giải nén bằng:
-```bash
-unzip data.zip -d FAS/
-```
-
-### 3. Train từng mô hình:
-```bash
-CUDA_VISIBLE_DEVICES=0 PYTHONPATH=. python3 src/training/train_convnext.py
-CUDA_VISIBLE_DEVICES=1 PYTHONPATH=. python3 src/training/train_efficientnet.py
-CUDA_VISIBLE_DEVICES=2 PYTHONPATH=. python3 src/training/train_vit.py
-```
-
-### 4. Đánh giá và trực quan hóa:
-```bash
-python3 evaluate_all.py
-```
-
-### 5. Triển khai dashboard:
-```bash
-streamlit run app.py
-```
-
-### 6. Kết quả mẫu (ví dụ)
-| Mô hình        | HTER (%) | Accuracy (%) | APCER | BPCER |
-|---------------|----------|--------------|-------|-------|
-| ConvNeXt      | 12.8     | 99.3         | 0.12  | 0.14  |
-| EfficientNet  | 13.0     | 99.2         | 0.13  | 0.13  |
-| ViT           | 14.5     | 98.9         | 0.15  | 0.16  |
-| Ensemble      | 11.2     | 99.5         | 0.10  | 0.12  |
-
-![](results/final_report/ConvNeXt_learning_history.png)
-![](results/final_report/ConvNeXt_cm.png)
-
-> **Dự án hỗ trợ phân tích lỗi, Grad-CAM, trực quan hóa prediction gallery, dashboard web, và báo cáo khoa học chuyên nghiệp.**
-
-## Đóng góp
-Mọi đóng góp, báo lỗi hoặc ý tưởng mới đều được hoan nghênh qua GitHub Issues hoặc Pull Request.
-
-## Tác giả
-- Thanh Van (thanh.van19062004@gmail.com)
-- Github: https://github.com/vanujiash9/Face-anti-spoof
-- File weights lớn (>100MB) không upload lên GitHub, chỉ lưu local hoặc upload lên Hugging Face/rclone.
-- Đảm bảo đường dẫn file trong config đúng với hệ thống của bạn.
-
-## Đóng góp & Liên hệ
-- Mọi đóng góp, câu hỏi, hoặc yêu cầu mở rộng vui lòng liên hệ qua GitHub hoặc email.
-
----
-README này đã được rút gọn, tập trung hướng dẫn sử dụng và cấu trúc dự án. Nếu cần bổ sung chi tiết về từng script/config, hãy phản hồi thêm!
-
-2. **Huấn luyện mô hình**
-
-- Chọn backbone (EfficientNet, ConvNeXt, ViT).
-- Cấu hình tham số huấn luyện qua file YAML (learning rate, batch size, epochs, v.v.).
-- Chạy script huấn luyện tương ứng trong `src/training/`.
-- Lưu checkpoint tốt nhất vào `checkpoints/<model>/best.pt`.
-
-3. **Đánh giá mô hình**
-
-- Sử dụng script `evaluate_all.py` để đánh giá các mô hình trên tập test.
-- Tính toán các chỉ số: Accuracy, Precision, Recall, F1, AUC, vẽ ROC/Confusion Matrix.
-- Lưu báo cáo và hình ảnh vào `src/results/final_comparison/`.
-
-4. **Ensemble (Kết hợp mô hình)**
-
-- Chạy script `ensemble_score.py` để kết hợp kết quả từ EfficientNet và ViT (trọng số mặc định 0.7/0.3).
-- So sánh kết quả ensemble với từng mô hình đơn lẻ.
-
-5. **Inference/Demo thực tế**
-
-- Chạy `app.py` với Streamlit để demo trực quan:
-  - Upload ảnh/video hoặc dùng webcam.
-  - Hệ thống tự động phát hiện khuôn mặt, phân loại live/spoof, vẽ khung và lưu kết quả.
-- Có thể gọi inference từ script hoặc tích hợp vào hệ thống lớn hơn.
-
-6. **Báo cáo & tổng kết**
-
-- Tổng hợp kết quả, phân tích ưu nhược điểm từng mô hình.
-- Đề xuất hướng cải tiến (bổ sung data, thử backbone mới, tuning hyperparameter, v.v.).
+Luận văn tốt nghiệp · Bùi Thị Thanh Vân · MSSV: 2251320039  
+Ngành Công nghệ Thông tin – Chuyên ngành Khoa học Dữ liệu  
+Trường Đại học Giao thông Vận tải TP. Hồ Chí Minh  
+Giảng viên hướng dẫn: TS. Nguyễn Thị Khánh Tiên  
+GitHub: https://github.com/vanujiash9/Face-anti-spoof
 
 ---
 
-## Mục lục
+## Tổng Quan
 
-- [Tổng quan](#tổng-quan)
-- [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
-- [Cấu trúc dự án](#cấu-trúc-dự-án)
-- [Cài đặt và chạy nhanh (Windows PowerShell)](#cài-đặt-và-chạy-nhanh-windows-powershell)
-- [Dữ liệu và tiền xử lý](#dữ-liệu-và-tiền-xử-lý)
-- [Huấn luyện](#huấn-luyện)
-- [Inference / Demo](#inference--demo)
-- [Đánh giá & So sánh mô hình](#đánh-giá--so-sánh-mô-hình)
-- [Checkpoints & Saved Models](#checkpoints--saved-models)
-- [Scripts tiện ích](#scripts-tiện-ích)
-- [Ghi chú / Troubleshooting](#ghi-chú--troubleshooting)
-- [Đóng góp](#đóng-góp)
-- [Liên hệ](#liên-hệ)
+Dự án nghiên cứu bài toán **phát hiện giả mạo khuôn mặt (Face Anti-Spoofing — FAS)**: phân loại nhị phân xác định khuôn mặt đưa vào hệ thống là **thật (Live)** hay **giả mạo (Spoof)**.
+
+Điểm khác biệt chính:
+
+- **Data-centric approach**: chuẩn hóa và cân bằng chất lượng dữ liệu để tránh shortcut learning, thay vì chỉ tập trung vào kiến trúc mô hình.
+- **So sánh công bằng 3 backbone hiện đại** (ConvNeXt-Tiny, EfficientNet-V2-B0, ViT-Base-LoRA) trong cùng một pipeline thống nhất.
+- **Đánh giá chi tiết** theo từng loại tấn công: Print, Replay, Mask, Deepfake.
+- **Pipeline end-to-end**: từ tiền xử lý dữ liệu, huấn luyện, đánh giá, đến demo web (Streamlit).
 
 ---
 
-## Tổng quan
+## Kết Quả
 
-Dự án triển khai các mô hình deep learning (EfficientNet, ConvNeXt, ViT) cho bài toán phát hiện "face liveness" — phân biệt ảnh/video người thật (live) và tấn công giả mạo (spoof). Bao gồm:
+Đánh giá trên tập test độc lập 3.627 mẫu, subject-independent split (80/20 theo danh tính):
 
-- Mã huấn luyện, kiểm thử và đánh giá.
-- Môi trường demo Streamlit để chạy inference trên ảnh, webcam, video (`app.py`).
-- Tập lệnh đánh giá, ensemble và so sánh kết quả (`evaluate_all.py`, `ensemble_score.py`).
+| Backbone | Accuracy | Precision | Recall | F1-Score |
+|---|---|---|---|---|
+| EfficientNet-V2-B0 | **99.07%** | **99.86%** | **98.34%** | **99.09%** |
+| ConvNeXt-Tiny | 94.85% | 97.52% | 94.36% | 95.91% |
+| ViT-Base-LoRA | 87.11% | 92.81% | 88.22% | 90.45% |
+| Ensemble (Eff + ViT) | ~99.5% | — | — | — |
 
-Mục tiêu: cung cấp pipeline end-to-end từ tiền xử lý dữ liệu -> huấn luyện -> inference -> báo cáo kết quả.
+> [Thêm ảnh biểu đồ so sánh các chỉ số tại đây — Hình 4.1]
 
-## Yêu cầu hệ thống
+Recall theo từng loại tấn công:
 
-- Python 3.8+ (tested with 3.8/3.9)
-- GPU được khuyến nghị (CUDA) cho huấn luyện / inference nhanh
-- Các thư viện chính: `torch`, `torchvision`, `timm`, `safetensors`, `pandas`, `pyyaml`, `opencv-python`, `Pillow`.
+| Loại tấn công | ConvNeXt-Tiny | EfficientNet-V2-B0 | ViT-Base-LoRA |
+|---|---|---|---|
+| Print Attack | 93.98% | 98.83% | 87.96% |
+| Replay Attack | 90.50% | 93.95% | 86.83% |
+| Mask Attack | 95.37% | 99.74% | 90.61% |
+| Deepfake Attack | ~97% | 100% | ~86% |
 
-Các dependency chính đã lưu trong `requirements.txt`.
-
-## Cấu trúc dự án (chỉ nêu các file/folder quan trọng)
-
-- `app.py` : Demo Streamlit (upload ảnh, webcam, video).
-- `ensemble_score.py` : Script chạy ensemble (EfficientNet + ViT) để lấy kết quả cuối cùng.
-- `evaluate_all.py` : Script đánh giá các mô hình, vẽ ROC/CM và xuất báo cáo.
-- `requirements.txt` : Danh sách các package cần cài.
-- `config/` : Các file cấu hình YAML mặc định cho từng backbone (`efficientnet.yaml`, `vit.yaml`, `convnet.yaml`).
-- `checkpoints/` : Nơi lưu `best.pt` / `last.pt` cho từng backbone.
-- `saved_models/` : Một số model đã lưu sẵn (định dạng safetensors / config).
-- `scripts/` : Script tiện ích, ví dụ `setup_venv.ps1`, và các script tiền xử lý dữ liệu.
-- `src/` : Mã nguồn chính:
-  - `src/training/` : script huấn luyện (ví dụ `train_vit.py`, `train_convnext.py`, `train_efficientnet.py`).
-  - `src/inference/` : file helper để inference/analysis (`infer_model.py`, `analyze_test.py`).
-  - `src/models/` : cấu trúc mô hình, scripts dựng model.
-  - `src/data/` : loader/tiền xử lý dữ liệu.
-  - `src/evaluation/` : hàm tính metric, helper plotting.
-
-## Giải thích chi tiết các file chính
-
-### 1. app.py
-
-Giao diện demo bằng Streamlit. Cho phép upload ảnh, video, dùng webcam để kiểm tra liveness. Tự động phát hiện khuôn mặt, phân loại live/spoof, vẽ khung và lưu kết quả. Phù hợp trình diễn trực quan hoặc kiểm thử nhanh.
-
-### 2. evaluate_all.py
-
-Script đánh giá toàn diện các mô hình (EfficientNet, ConvNeXt, ViT) trên tập test. Tính toán các chỉ số (Accuracy, Precision, Recall, F1, AUC), vẽ biểu đồ ROC, Confusion Matrix, xuất báo cáo chi tiết vào thư mục `src/results/final_comparison/`.
-
-### 3. ensemble_score.py
-
-Script thực hiện kết hợp (ensemble) hai mô hình EfficientNet và ViT bằng cách lấy trung bình trọng số xác suất dự đoán. Giúp tăng độ chính xác so với dùng một mô hình đơn lẻ.
-
-### 4. src/training/
-
-Chứa các script huấn luyện cho từng backbone:
-
-- `train_efficientnet.py`: Huấn luyện mô hình EfficientNet.
-- `train_convnext.py`: Huấn luyện ConvNeXt.
-- `train_vit.py`: Huấn luyện ViT.
-  Các script này nhận tham số cấu hình từ file YAML, lưu checkpoint tốt nhất vào `checkpoints/`.
-
-### 5. src/inference/
-
-Chứa các hàm, script hỗ trợ inference (dự đoán) trên tập dữ liệu hoặc từng ảnh/video. Ví dụ:
-
-- `infer_model.py`: Hàm load model, chạy dự đoán batch.
-- `analyze_test.py`: Phân tích kết quả test, xuất thống kê.
-
-### 6. src/data/
-
-Chứa các module xử lý dữ liệu:
-
-- `data_loader.py`: Định nghĩa dataset, hàm load ảnh và nhãn từ CSV.
-- `split_dataset.py`: Hỗ trợ chia train/test, lưu file CSV.
-
-### 7. config/
-
-Chứa các file YAML cấu hình cho từng backbone (EfficientNet, ConvNeXt, ViT). Các trường chính gồm: đường dẫn dữ liệu, batch size, learning rate, số epoch, v.v. Người dùng chỉnh sửa file này để thay đổi tham số huấn luyện.
-
-### 8. checkpoints/
-
-Lưu các file trọng số (weights) tốt nhất và cuối cùng cho từng mô hình (`best.pt`, `last.pt`). Khi inference hoặc đánh giá, script sẽ tự động load file này.
-
-### 9. saved_models/
-
-Chứa các model đã lưu sẵn ở định dạng safetensors và file config. Dùng để chuyển đổi hoặc tải nhanh mô hình mà không cần huấn luyện lại.
-
-### 10. scripts/
-
-Chứa các script tiện ích:
-
-- `setup_venv.ps1`: Tạo môi trường ảo và cài dependencies.
-- `data_cleaning/`: Các script tiền xử lý dữ liệu như resize ảnh, trích xuất frame, thống kê kích thước, merge file nhãn, v.v.
+> [Thêm ảnh Recall theo loại tấn công tại đây — Hình 4.7]
 
 ---
 
-## Cài đặt và chạy nhanh (Windows PowerShell)
+## Yêu Cầu Hệ Thống
 
-1. Tạo virtual environment và kích hoạt (PowerShell):
+- Python 3.8+ (tested 3.8/3.9, khuyến nghị 3.11)
+- GPU với CUDA (khuyến nghị cho huấn luyện và inference)
+- Môi trường thực nghiệm gốc: 3x NVIDIA RTX 3060 Ti (8GB VRAM), AMD EPYC 7K62 48-Core, RAM 378GB, Ubuntu 22.04.3 LTS, CUDA 12.1
+
+---
+
+## Cấu Trúc Dự Án
+
+```
+Face-anti-spoof/
+├── app.py                           # Demo Streamlit (anh, webcam, video)
+├── evaluate_all.py                  # Danh gia toan dien cac mo hinh
+├── ensemble_score.py                # Ket hop EfficientNet + ViT
+├── requirements.txt
+├── config/
+│   ├── efficientnet.yaml
+│   ├── convnext.yaml
+│   └── vit.yaml
+├── src/
+│   ├── training/
+│   │   ├── train_efficientnet.py
+│   │   ├── train_convnext.py
+│   │   └── train_vit.py
+│   ├── models/                      # Dinh nghia kien truc mo hinh
+│   ├── data/
+│   │   ├── data_loader.py
+│   │   └── split_dataset.py
+│   ├── inference/
+│   │   ├── infer_model.py
+│   │   └── analyze_test.py
+│   └── evaluation/                  # Ham tinh metric, helper plotting
+├── data/
+│   ├── raw/                         # Du lieu goc tu 6 bo dataset
+│   ├── processed/                   # Du lieu sau deep cleaning
+│   └── data_process/dataset_split/  # train.csv, test.csv
+├── checkpoints/
+│   ├── efficientnet/best.pt
+│   ├── convnext/best.pt
+│   └── vit/best.pt
+├── saved_models/                    # Weights dinh dang safetensors
+├── scripts/
+│   ├── setup_venv.ps1
+│   └── data_cleaning/               # Script resize, trich xuat frame, merge nhan
+└── results/
+    └── final_comparison/            # Bao cao, ROC, confusion matrix
+```
+
+---
+
+## Dữ Liệu
+
+Tập dữ liệu tổng hợp từ **6 nguồn quốc tế**, sau khi deep cleaning còn **48.074 mẫu**.
+
+| Nhóm | Dataset | Đặc điểm |
+|---|---|---|
+| Live | FFHQ | Ảnh chân dung chất lượng cao, đa dạng danh tính |
+| Live | VGGFace2 | Ảnh đa dạng pose, biểu cảm, ánh sáng |
+| Spoof | CelebA-Spoof | Print, replay, partial/full mask |
+| Spoof | FaceForensics++ | Deepfake, Face2Face, FaceSwap, NeuralTextures |
+| Spoof | iBeta PAD Level 2 | Mask 3D cao cấp theo chuẩn ISO/IEC 30107-3 |
+| Spoof | Silicone Mask Dataset | Mặt nạ silicone custom |
+
+**Không push dữ liệu, model, checkpoint lớn lên GitHub.** Nén thành `data.zip` nếu cần chia sẻ. Khi clone về, giải nén:
+
+```bash
+unzip data.zip -d Face-anti-spoof/
+```
+
+> [Thêm ảnh phân bố Live/Spoof tại đây — Hình 2.1]
+
+---
+
+## Quy Trình Tiền Xử Lý
+
+### Deep Cleaning
+
+- **Face detection**: MTCNN, ngưỡng tin cậy 0.98, loose crop hệ số **1.4x** để giữ context (mép giấy, viền màn hình, cạnh mặt nạ).
+- **Blur filter**: Laplacian variance < 50 bị loại.
+- **Deduplication**: pHash, ngưỡng Hamming distance < 5 bit.
+
+### Domain Balancing — Quality Equalization
+
+Để tránh mô hình học "đường tắt" theo chất lượng ảnh, ảnh Live được chủ động hạ chất lượng:
+
+- **JPEG compression** ngẫu nhiên (quality factor 15–45).
+- **Gaussian blur** nhẹ (sigma 0.5–1.2).
+
+| Chỉ số | Live gốc (FFHQ/VGGFace2) | Live sau Quality Equalization |
+|---|---|---|
+| Độ nét (Laplacian) | Rất cao (> 150) | Trung bình (50–90) |
+| Nhiễu nén | Gần như không có | Xuất hiện nhiễu khối JPEG |
+| Chi tiết vi mô | Studio-level | Mờ nhẹ, giống cảm biến thực tế |
+
+> [Thêm ảnh ví dụ Live/Spoof trước và sau Quality Equalization tại đây — Hình 2.3]
+
+### Identity-Based Split
+
+80% Train / 20% Test theo danh tính — mỗi cá nhân chỉ xuất hiện trong một tập, đảm bảo không rò rỉ thông tin giữa hai tập.
+
+> [Thêm ảnh biểu đồ phân chia train/test tại đây — Hình 2.4]
+
+Chuẩn hoá ảnh trong pipeline:
+
+```
+Resize: EfficientNet -> 260x260  |  ConvNeXt / ViT -> 224x224
+Normalize: mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+```
+
+---
+
+## Kiến Trúc Mô Hình
+
+Ba backbone được kết hợp với **Classification Head thống nhất** (512-dim bottleneck):
+
+```
+Backbone Output -> Linear(-> 512) -> Norm -> Activation -> Dropout(0.5-0.6) -> Linear(-> 1) -> Sigmoid
+```
+
+Lý do chọn 512 chiều: thử nghiệm với 256/512/1024 cho thấy 512 cho khoảng cách train-val loss nhỏ nhất (~0.08–0.10) và hội tụ mượt nhất.
+
+### ConvNeXt-Tiny
+
+CNN hiện đại hóa theo tinh thần Transformer: kernel 7x7, depthwise convolution, 4 stage, GlobalAvgPool về 768 chiều. 28M tham số.
+
+Regularization đặc thù: Stochastic Depth 0.2 + Dropout tại head.
+
+> [Thêm ảnh kiến trúc ConvNeXt tại đây — Hình 3.1]
+
+### EfficientNet-V2-B0
+
+CNN tối ưu tài nguyên: Fused-MBConv + MBConv + Squeeze-and-Excitation, đầu ra 1280 chiều. 8.4M tham số. Phù hợp triển khai thiết bị biên.
+
+Regularization đặc thù: Dropout 0.6 + Mixup augmentation.
+
+> [Thêm ảnh kiến trúc EfficientNet-V2-B0 tại đây — Hình 3.2]
+
+### ViT-Base + LoRA
+
+Vision Transformer với Parameter-Efficient Fine-Tuning. Ảnh 224x224 chia patch 16x16, chuỗi 197 token qua 12 lớp Transformer Encoder. 86M tham số gốc, chỉ **0.6M trainable** (LoRA rank=16, alpha=32 trên Query và Value).
+
+> [Thêm ảnh kiến trúc ViT-Base tại đây — Hình 3.3]
+
+---
+
+## Cài Đặt
+
+### Windows PowerShell
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-```
-
-2. Cài dependencies:
-
-```powershell
 pip install -r requirements.txt
 ```
 
-3. Chạy demo Streamlit (mở trình duyệt):
+Hoặc dùng script tự động:
 
 ```powershell
-streamlit run app.py
+.\scripts\setup_venv.ps1
 ```
 
-4. Chạy đánh giá mô hình (sẽ lưu kết quả vào `src/results/final_comparison`):
+### Linux / macOS
 
-```powershell
-python evaluate_all.py
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
-
-5. Chạy ensemble (Eff + ViT):
-
-```powershell
-python ensemble_score.py
-```
-
-Lưu ý: Trước khi chạy các script đánh giá/ensemble, cần đảm bảo file weight (`checkpoints/*/best.pt`) có tồn tại.
-
-## Dữ liệu và tiền xử lý
-
-- Thư mục dữ liệu chính nằm ở `data/` (các file tiền xử lý nằm trong `scripts/data_cleaning/`).
-- Kết quả tách train/test được lưu trong `data/data_process/dataset_split/` (ví dụ `test.csv`).
-- `src/data/data_loader.py` và `src/data/split_dataset.py` chứa logic tạo dataset và loader.
-
-Chuẩn hoá ảnh được sử dụng trong pipeline:
-
-- Resize theo kích thước model (Eff: 260, ViT/ConvNeXt: 224)
-- Normalize bằng mean/std ImageNet `[0.485, 0.456, 0.406]` / `[0.229, 0.224, 0.225]`
-
-## Huấn luyện
-
-- Các script huấn luyện nằm trong `src/training/`:
-  - `train_efficientnet.py`, `train_convnext.py`, `train_vit.py`
-- Các cấu hình huấn luyện (learning rate, batch size, đường dẫn dữ liệu) được lưu trong `config/*.yaml` — chỉnh sửa trước khi chạy.
-
-Một ví dụ chạy (PowerShell):
-
-```powershell
-python src/training/train_efficientnet.py --config config/efficientnet.yaml
-```
-
-Tuỳ theo script, có thể có các tham số CLI khác (kiểm tra header hoặc `argparse` trong file).
-
-## Inference / Demo
-
-- `app.py` là front-end bằng Streamlit cho phép:
-
-  - Upload nhiều ảnh (batch) và lưu kết quả vào `demo_saved/outputs`.
-  - Sử dụng webcam (Streamlit `camera_input`).
-  - Upload video, xử lý frame và lưu video kết quả.
-
-- Nếu muốn gọi inference từ CLI/Script: xem `src/inference/infer_model.py` để biết cách load model và chạy batch inference.
-
-## Đánh giá & So sánh mô hình
-
-- `evaluate_all.py`:
-
-  - Load các model từ `checkpoints/*/best.pt` (Eff, ConvNeXt, ViT).
-  - Chạy trên `test.csv` (đường dẫn lấy từ `config/*`), xuất metrics: Accuracy, Precision, Recall, F1, AUC.
-  - Lưu biểu đồ ROC & Confusion Matrix vào `src/results/final_comparison`.
-
-- `ensemble_score.py`:
-  - Chạy inference riêng cho EfficientNet và ViT ở kích thước tương ứng, sau đó kết hợp probability theo trọng số (mặc định 0.7 Eff + 0.3 ViT).
-
-## Checkpoints & Saved Models
-
-- Checkpoints mặc định: `checkpoints/efficientnet/best.pt`, `checkpoints/vit/best.pt`, `checkpoints/convnext/best.pt`.
-- Thư mục `saved_models/` chứa model ở dạng `safetensors` và config tương ứng (dùng khi muốn chuyển sang tải sẵn weights khác).
-
-Nếu bạn không có checkpoints, cần huấn luyện lại hoặc thay thế bằng các model trong `saved_models/` (nếu có hỗ trợ loader tương ứng).
-
-## Scripts tiện ích
-
-- `scripts/setup_venv.ps1` : script PowerShell tạo venv và cài dependencies.
-- `scripts/data_cleaning/` : nhiều script hỗ trợ trích xuất ảnh, thống kê kích thước, resize, merge các file nhãn.
-
-## Ghi chú / Troubleshooting
-
-- Nếu Streamlit báo lỗi không tìm thấy weights: đặt file weights vào đường dẫn `checkpoints/<model>/best.pt` hoặc sửa đường dẫn trong `app.py`.
-- Nếu dùng GPU, đảm bảo `torch` cài phù hợp với CUDA phiên bản hệ thống.
-- Một số hàm đọc CSV sẽ lọc các file không tồn tại trong thư mục ảnh — đảm bảo `filepath` trong `test.csv` tương ứng với tên file trong `img_dir`.
-
-## Đóng góp
-
-Mọi contribution (issue, PR) đều hoan nghênh. Trước khi đóng góp, vui lòng:
-
-- Mô tả rõ mục tiêu (bugfix / feature).
-- Nếu thêm model mới, cập nhật `evaluate_all.py` / `ensemble_score.py` để include model.
-
-## Liên hệ
-
-Nếu cần trợ giúp thêm hoặc muốn mình điều chỉnh README/ scripts, reply trực tiếp cho tôi.
 
 ---
 
-README này là bản tóm tắt dựa trên mã nguồn hiện có trong thư mục `PAD/`. Nếu bạn muốn, tôi có thể:
+## Huấn Luyện
 
-- Bổ sung hướng dẫn từng bước cho từng script cụ thể (ví dụ: các tham số CLI của `train_vit.py`).
-- Thêm ví dụ cấu hình `config/efficientnet.yaml` và giải thích các trường.
+Chỉnh sửa file cấu hình trong `config/` trước khi chạy (đường dẫn dữ liệu, batch size, learning rate, v.v.).
 
-Hãy cho biết bạn muốn mở rộng phần nào nữa.
-# Face-anti-spoof
+```bash
+# Linux — chạy song song trên 3 GPU
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=. python3 src/training/train_convnext.py
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=. python3 src/training/train_efficientnet.py
+CUDA_VISIBLE_DEVICES=2 PYTHONPATH=. python3 src/training/train_vit.py
+
+# Chỉ định config
+python src/training/train_efficientnet.py --config config/efficientnet.yaml
+```
+
+Checkpoint tốt nhất được lưu tự động vào `checkpoints/<model>/best.pt` dựa trên F1-Score validation.
+
+### Siêu Tham Số
+
+| Thông số | ConvNeXt-Tiny | EfficientNet-V2-B0 | ViT-Base (LoRA) |
+|---|---|---|---|
+| Input size | 224x224 | 260x260 | 224x224 |
+| Batch size | 64 | 64 | 32 |
+| Max epochs | 30 | 40 | 45 |
+| Learning rate | 1e-4 | 5e-5 | 5e-5 |
+| Weight decay | 0.1 | 0.15 | 0.2 |
+| Label smoothing | 0.1 | 0.2 | 0.1 |
+| Warm-up epochs | 3 | 5 | 5 |
+| Early stopping patience | 10 | 12 | 15 |
+| Regularization đặc thù | Stochastic Depth 0.2 | Mixup augmentation | LoRA rank 16 |
+
+### Chiến Lược Huấn Luyện
+
+- **WeightedRandomSampler**: trọng số Live=3.0, Spoof=1.0 để cân bằng tỉ lệ 1:3 trong mỗi batch.
+- **Label Smoothing** (0.1–0.2): giảm overconfidence, cải thiện calibration.
+- **Progressive Unfreezing**: đóng băng backbone 3–5 epoch đầu (chỉ train head), sau đó mở toàn bộ với learning rate backbone = 1/10 head.
+- **Early Stopping** theo F1-Score với patience 10–15 epoch; lưu trọng số tại epoch tốt nhất.
+
+---
+
+## Đánh Giá
+
+```bash
+python evaluate_all.py
+```
+
+Script load các model từ `checkpoints/*/best.pt`, chạy trên `data/data_process/dataset_split/test.csv`, tính Accuracy, Precision, Recall, F1, AUC, vẽ ROC và Confusion Matrix, lưu kết quả vào `results/final_comparison/`.
+
+> [Thêm ảnh confusion matrix tại đây — Hình 4.6]
+
+> [Thêm ảnh learning curves (Loss + Accuracy) của 3 mô hình tại đây — Hình 4.2, 4.3, 4.4]
+
+> [Thêm ảnh phân bố probability score tại đây — Hình 4.5]
+
+### Ensemble
+
+```bash
+python ensemble_score.py
+```
+
+Kết hợp xác suất của EfficientNet và ViT theo trọng số mặc định 0.7/0.3.
+
+### Đánh Giá Đa Ngưỡng
+
+Ngoài ngưỡng mặc định 0.5, dự án phân tích thêm:
+
+- **Ngưỡng 0.3** (ưu tiên Recall — chế độ bảo mật cao): phù hợp khi cần phát hiện tối đa tấn công, chấp nhận false alarm cao hơn.
+- **Ngưỡng 0.7** (ưu tiên Precision — chế độ thân thiện người dùng): phù hợp khi cần giảm cảnh báo nhầm.
+
+---
+
+## Demo Web
+
+```bash
+streamlit run app.py
+```
+
+Giao diện hỗ trợ:
+
+- Upload nhiều ảnh (batch), lưu kết quả vào `demo_saved/outputs/`.
+- Dùng webcam (Streamlit `camera_input`).
+- Upload video, xử lý từng frame, lưu video kết quả.
+
+Hệ thống tự động phát hiện khuôn mặt, phân loại live/spoof, vẽ bounding box và hiển thị xác suất dự đoán.
+
+---
+
+## Inference Từ Script
+
+Để gọi inference từ code hoặc tích hợp vào hệ thống khác, xem `src/inference/infer_model.py`:
+
+```python
+from src.inference.infer_model import load_model, predict_batch
+
+model = load_model("checkpoints/efficientnet/best.pt", backbone="efficientnet")
+results = predict_batch(model, image_paths=["face1.jpg", "face2.jpg"])
+```
+
+---
+
+## So Sánh Với Nghiên Cứu Gần Đây
+
+| Nghiên cứu | Kiến trúc | Accuracy | F1-Score | Ghi chú |
+|---|---|---|---|---|
+| Jaswanth et al. (2023) | NLBP-Net | 99.59% | 99.06% | Cần feature engineering thủ công |
+| **Luận văn này** | **EfficientNet-V2-B0** | **99.07%** | **99.09%** | End-to-end, precision cao nhất (99.86%) |
+| Arti et al. (2023) | Inception-v3 | 98.78% | 99.27% | Dấu hiệu quá khớp |
+| Zawar et al. (2023) | MobileNetV2 | 98.00% | 96–99% | Nhẹ, real-time |
+| Imam (2024) | AlexNet | 97.98% | 98.93% | Không phân tích chi tiết PAI |
+
+---
+
+## Hạn Chế và Hướng Phát Triển
+
+Hạn chế hiện tại:
+
+- Chỉ sử dụng ảnh RGB, chưa khai thác multi-modal (RGB + Depth + IR).
+- Chưa có giao thức cross-database chuyên biệt (ví dụ train CelebA-Spoof, test OULU-NPU).
+- ViT-LoRA chưa tích hợp statistical adapter (S-Adapter) hoặc TTDG-FAS.
+
+Hướng phát triển:
+
+- Tích hợp S-Adapter / Test-Time Domain Generalization cho nhánh Transformer.
+- Mở rộng đánh giá cross-dataset chuẩn hóa.
+- Xây dựng phân loại đa lớp xác định loại tấn công cụ thể (Print / Replay / Mask / Deepfake).
+- Bổ sung temporal analysis cho Replay Attack.
+- Triển khai multi-modal với depth/IR sensors.
+
+---
+
+## Ghi Chú Kỹ Thuật
+
+- File weights lớn (> 100MB) không upload lên GitHub, lưu local hoặc upload lên Hugging Face / rclone.
+- Nếu Streamlit báo lỗi không tìm thấy weights: đặt file vào `checkpoints/<model>/best.pt` hoặc sửa đường dẫn trong `app.py`.
+- Nếu dùng GPU, đảm bảo PyTorch cài đúng phiên bản CUDA.
+- Một số hàm đọc CSV sẽ lọc các file không tồn tại trong thư mục ảnh — đảm bảo filepath trong `test.csv` khớp với tên file trong `img_dir`.
+- Đảm bảo đường dẫn file trong `config/*.yaml` đúng với hệ thống của bạn.
+
+---
+
+## Đóng Góp
+
+Mọi contribution (issue, PR) đều hoan nghênh. Trước khi đóng góp:
+
+- Mô tả rõ mục tiêu (bugfix / feature mới).
+- Nếu thêm model mới, cập nhật `evaluate_all.py` và `ensemble_score.py` để include model.
+
+---
+
+## Liên Hệ
+
+Bùi Thị Thanh Vân  
+Email: thanh.van19062004@gmail.com  
+GitHub: https://github.com/vanujiash9/Face-anti-spoof
