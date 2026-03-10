@@ -1,0 +1,18 @@
+model_name: "vit"
+dataset:
+  img_dir: "data/dataset_final"
+  input_size: 224
+  batch_size: 32
+  num_workers: 16
+train:
+  epochs: 45
+  learning_rate: 0.00005
+  weight_decay: 0.2
+  label_smoothing: 0.1
+  warmup_epochs: 5
+  patience: 15
+  device: "cuda"
+  checkpoint_dir: "checkpoints/vit"
+  results_dir: "results/vit"
+vit_config:
+  lora_rank: 16

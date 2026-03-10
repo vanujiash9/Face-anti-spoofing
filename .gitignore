@@ -1,0 +1,75 @@
+# Loại trừ các file và thư mục lớn/không cần thiết
+checkpoints/efficientnet/last.pt
+checkpoints/vit/last.pt
+data/data_split/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Data & Models
+data/
+data_split/
+checkpoints/
+saved_models/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.h5
+*.npy
+*.npz
+*.pkl
+*.pickle
+
+# Results & Logs
+results/
+*.csv
+*.xlsx
+*.log
+*.db
+*.sqlite3
+
+# Build & Packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# VS Code
+.vscode/
+
+# Docs
+docs/_build/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Others
+*.swp
+*~

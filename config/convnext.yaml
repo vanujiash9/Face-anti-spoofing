@@ -1,0 +1,16 @@
+model_name: "convnext"
+dataset:
+  img_dir: "data/dataset_final"
+  input_size: 224
+  batch_size: 64
+  num_workers: 16
+train:
+  epochs: 30
+  learning_rate: 0.0001
+  weight_decay: 0.1
+  label_smoothing: 0.1
+  warmup_epochs: 3
+  patience: 10
+  device: "cuda"
+  checkpoint_dir: "checkpoints/convnext"
+  results_dir: "results/convnext"
