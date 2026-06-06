@@ -63,6 +63,11 @@ venv.bak/
 # VS Code
 .vscode/
 
+# Claude / local tooling
+.claude/
+.specify/
+.mcp.json
+.docs/
 # Docs
 docs/_build/
 
