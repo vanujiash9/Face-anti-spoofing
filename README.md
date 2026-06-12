@@ -483,39 +483,7 @@ Attack type analysis
 - EfficientNet phù hợp triển khai edge
 - Pipeline đầy đủ từ dữ liệu đến ứng dụng
 
----
 
-## Hạn chế hiện tại
-
-- Dữ liệu vẫn có thể khác biệt với môi trường triển khai thực tế
-- Chưa đánh giá cross-dataset đầy đủ
-- Chưa thử nghiệm trên thiết bị edge thực tế
-- ViT-Base có hiệu quả thấp hơn hai CNN backbone
-- Chưa có REST API
-- Chưa có Dockerfile
-- Chưa có CI/CD
-- Chưa công bố latency theo từng thiết bị
-- Chưa có mô hình chống tấn công chưa từng thấy
-
----
-
-## Hướng phát triển
-
-- [ ] Đánh giá cross-dataset
-- [ ] Kiểm thử với spoof attack chưa xuất hiện trong training
-- [ ] Tối ưu ONNX hoặc TensorRT
-- [ ] Quantization INT8 hoặc FP16
-- [ ] Triển khai trên edge device
-- [ ] Xây dựng FastAPI backend
-- [ ] Docker hóa ứng dụng
-- [ ] Bổ sung CI/CD
-- [ ] Đo latency và throughput
-- [ ] Thêm Grad-CAM để giải thích mô hình
-- [ ] Thử nghiệm temporal modeling cho video
-- [ ] Bổ sung face quality assessment
-- [ ] Đánh giá theo ISO/IEC 30107-3
-
----
 
 ## Thông tin luận văn
 
